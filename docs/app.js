@@ -263,11 +263,21 @@ function setAskButtonEnabled(enabled, message) {
     return;
   }
   const tooltip = message || "";
-  button.disabled = !enabled;
-  button.title = tooltip;
-  button.dataset.tooltip = tooltip;
+  if (enabled) {
+    button.disabled = false;
+    button.removeAttribute("disabled");
+    button.removeAttribute("aria-disabled");
+    button.title = "";
+    delete button.dataset.tooltip;
+  } else {
+    button.disabled = true;
+    button.setAttribute("disabled", "");
+    button.setAttribute("aria-disabled", "true");
+    button.title = tooltip;
+    button.dataset.tooltip = tooltip;
+  }
   if (gate) {
-    if (tooltip) {
+    if (!enabled && tooltip) {
       gate.dataset.tooltip = tooltip;
     } else {
       delete gate.dataset.tooltip;

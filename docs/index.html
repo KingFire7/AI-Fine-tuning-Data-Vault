@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI 微调数据保险箱 - 纯演示版</title>
+    <title>AI 微调数据保险箱 - 演示版</title>
     <link rel="stylesheet" href="./styles.css?v=pages-mirror1" />
   </head>
   <body>
@@ -53,11 +53,11 @@
           </div>
           <div class="brand-copy">
             <div class="brand-kicker">
-              <span>STATIC DEMO</span>
+              <span>WEB DEMO</span>
               <i></i>
               <span>SSD DATA BOUNDARY</span>
             </div>
-            <h1><span>AI 微调</span><strong>数据保险箱</strong></h1>
+            <h1><span>AI 微调</span><strong>数据保险箱</strong><em>（网页演示版）</em></h1>
             <div class="brand-tags" aria-label="核心能力">
               <span>移动保险箱</span>
               <span>宿主机算力</span>
@@ -105,15 +105,15 @@
             </div>
           </div>
           <div id="docList" class="doc-list"></div>
-          <div class="quick-upload">
+          <div class="quick-upload demo-disabled" data-tooltip="演示版不支持手动添加文档，请使用上方上传按钮从预设文档中模拟上传。">
             <div class="quick-upload-help">
               <strong>手动写入测试文档</strong>
-              <span>纯演示版不会访问本地文件系统，点击保存后会把文本加入页面内置的模拟文档列表。</span>
+              <span>演示版不支持手动添加文档，请使用上方上传按钮从预设文档中模拟上传。</span>
             </div>
-            <input id="docNameInput" type="text" value="uploaded_case_note.txt" aria-label="文档名" />
-            <textarea id="docTextInput" rows="4" aria-label="文档内容">新上传病历摘要
+            <input id="docNameInput" type="text" value="uploaded_case_note.txt" aria-label="文档名" disabled />
+            <textarea id="docTextInput" rows="4" aria-label="文档内容" disabled>新上传病历摘要
 患者术后随访，需结合复查时间、用药调整和异常症状提醒进行问答适配。</textarea>
-            <button id="saveDocBtn" class="btn btn-secondary" type="button">
+            <button id="saveDocBtn" class="btn btn-secondary" type="button" disabled>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2ZM7 21v-8h10v8M7 3v5h8" />
               </svg>
@@ -138,7 +138,7 @@
           <div id="chatLog" class="chat-log">
             <div class="message system">
               <strong>本地 Qwen 问答</strong>
-              <span>纯演示版不加载模型权重；请选择预设问题，页面会用固定回答模拟“私有文档检索 + 本地模型回答 + 引用依据”。</span>
+              <span>演示版不加载模型权重；请选择预设问题，页面会用固定回答模拟“私有文档检索 + 本地模型回答 + 引用依据”。</span>
             </div>
           </div>
           <div id="presetQuestionBank" class="preset-question-bank" aria-label="预设问题"></div>

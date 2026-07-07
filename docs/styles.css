@@ -3077,8 +3077,40 @@ textarea:focus {
   background: rgba(76, 201, 192, 0.1);
 }
 
+.brand-copy h1 em {
+  margin-left: 10px;
+  color: var(--muted);
+  font-size: clamp(15px, 1.4vw, 22px);
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.quick-upload.demo-disabled {
+  opacity: 0.48;
+  filter: grayscale(0.25);
+  cursor: not-allowed;
+}
+
+.quick-upload.demo-disabled input,
+.quick-upload.demo-disabled textarea,
+.quick-upload.demo-disabled button {
+  cursor: not-allowed;
+}
+
+.quick-upload.demo-disabled button {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
 @media (max-width: 760px) {
   .preset-question-bank {
     grid-template-columns: 1fr;
+  }
+
+  .brand-copy h1 em {
+    display: block;
+    margin: 6px 0 0;
   }
 }

@@ -300,12 +300,12 @@ function mockApi(path, options = {}) {
       enabled: true,
       loaded: true,
       real_model: false,
-      static_demo: true,
-      model_id: "Qwen2.5-Static-Preset",
-      backend: "github-pages-static-demo",
+      demo_mode: true,
+      model_id: "Qwen2.5-Demo-Preset",
+      backend: "github-pages-demo",
       device: "browser",
       dtype: "preset",
-      cache_dir: "docs/static-fixture"
+      cache_dir: "docs/demo-fixture"
     };
   }
   if (path === "/api/documents" && method === "GET") {
@@ -382,7 +382,7 @@ function mockApi(path, options = {}) {
     const body = requestBody(options);
     return mockModelAnswer(body.question || "");
   }
-  throw new Error(`Static demo has no route for ${method} ${path}`);
+  throw new Error(`Demo page has no route for ${method} ${path}`);
 }
 
 function firstLine(text) {
@@ -393,42 +393,82 @@ function compactText(text) {
   return String(text || "").replace(/\s+/g, " ").trim().slice(0, 180);
 }
 
-function mockHardware() {
-  const gpus = [
+function mockGpuInventory() {
+  return [
     {
-      index: 4,
-      name: "NVIDIA GeForce RTX 4090",
-      total_mib: 24564,
-      free_mib: 14200,
-      used_mib: 10364,
-      our_used_mib: 3160,
-      other_used_mib: 7204,
-      utilization_gpu: 38,
-      temperature_c: 54,
-      power_w: 168,
+      index: 0,
+      name: "NVIDIA GeForce RTX 3060",
+      total_mib: 12288,
+      free_mib: 7820,
+      used_mib: 4468,
+      our_used_mib: 760,
+      other_used_mib: 3708,
+      utilization_gpu: 18,
+      temperature_c: 46,
+      power_w: 82,
       visible: true,
       processes: [
-        { pid: 42420, name: "static-qwen-demo", used_mib: 3160, owner: "ours" },
-        { pid: 18421, name: "python", used_mib: 7204, owner: "other" }
+        { pid: 42420, name: "web-demo-preset", used_mib: 760, owner: "ours" },
+        { pid: 18421, name: "python", used_mib: 3708, owner: "other" }
       ]
     },
     {
-      index: 5,
+      index: 1,
       name: "NVIDIA GeForce RTX 4090",
       total_mib: 24564,
-      free_mib: 17680,
-      used_mib: 6884,
+      free_mib: 18240,
+      used_mib: 6324,
       our_used_mib: 1920,
-      other_used_mib: 4964,
-      utilization_gpu: 21,
-      temperature_c: 48,
-      power_w: 122,
+      other_used_mib: 4404,
+      utilization_gpu: 24,
+      temperature_c: 49,
+      power_w: 128,
       visible: true,
       processes: [
-        { pid: 42420, name: "static-qwen-demo", used_mib: 1920, owner: "ours" },
-        { pid: 19244, name: "notebook", used_mib: 4964, owner: "other" }
+        { pid: 42420, name: "web-demo-preset", used_mib: 1920, owner: "ours" },
+        { pid: 19244, name: "notebook", used_mib: 4404, owner: "other" }
+      ]
+    },
+    {
+      index: 2,
+      name: "NVIDIA A100 80GB PCIe",
+      total_mib: 81920,
+      free_mib: 61200,
+      used_mib: 20720,
+      our_used_mib: 6144,
+      other_used_mib: 14576,
+      utilization_gpu: 41,
+      temperature_c: 58,
+      power_w: 238,
+      visible: true,
+      processes: [
+        { pid: 42420, name: "web-demo-preset", used_mib: 6144, owner: "ours" },
+        { pid: 20018, name: "train.py", used_mib: 14576, owner: "other" }
+      ]
+    },
+    {
+      index: 3,
+      name: "NVIDIA L20",
+      total_mib: 49152,
+      free_mib: 28160,
+      used_mib: 20992,
+      our_used_mib: 3072,
+      other_used_mib: 17920,
+      utilization_gpu: 33,
+      temperature_c: 52,
+      power_w: 162,
+      visible: true,
+      processes: [
+        { pid: 42420, name: "web-demo-preset", used_mib: 3072, owner: "ours" },
+        { pid: 21309, name: "inference-server", used_mib: 17920, owner: "other" }
       ]
     }
+  ];
+}
+
+function mockHardware() {
+  const gpus = [
+    ...mockGpuInventory()
   ];
   const totals = gpus.reduce((acc, gpu) => {
     acc.total_mib += gpu.total_mib;
@@ -442,14 +482,14 @@ function mockHardware() {
   totals.gpu_count = 8;
   totals.visible_count = gpus.length;
   return {
-    platform: "GitHub Pages 静态演示环境",
+    platform: "GitHub Pages 网页演示环境",
     python: "not-required",
     cpu_count: 32,
     memory_gib: 128,
     cuda_available: true,
-    cuda_visible_devices: "4,5",
+    cuda_visible_devices: "0,1,2,3",
     gpu_count: gpus.length,
-    selected_device: "static-demo",
+    selected_device: "web-demo",
     gpu_inventory: gpus,
     gpu_totals: totals
   };
@@ -457,16 +497,17 @@ function mockHardware() {
 
 function mockRuntimeConfig() {
   return {
-    selected_gpu_ids: [4, 5],
+    selected_gpu_ids: [1, 2],
     current_model_id: "Qwen/Qwen2.5-14B-Instruct",
     current_model_label: "Qwen2.5 14B Instruct",
     active_model_option_id: "Qwen/Qwen2.5-14B-Instruct",
     device_map: "auto",
-    gpu_options: mockHardware().gpu_inventory,
+    gpu_options: mockGpuInventory(),
     model_options: [
       { id: "Qwen/Qwen2.5-0.5B-Instruct", label: "Qwen2.5 0.5B Instruct", params_b: 0.5, available: true, local: true },
       { id: "Qwen/Qwen2.5-7B-Instruct", label: "Qwen2.5 7B Instruct", params_b: 7, available: true, local: true },
-      { id: "Qwen/Qwen2.5-14B-Instruct", label: "Qwen2.5 14B Instruct", params_b: 14, available: true, local: true }
+      { id: "Qwen/Qwen2.5-14B-Instruct", label: "Qwen2.5 14B Instruct", params_b: 14, available: true, local: true },
+      { id: "Qwen/Qwen2.5-32B-Instruct", label: "Qwen2.5 32B Instruct", params_b: 32, available: true, local: false }
     ]
   };
 }
@@ -476,7 +517,7 @@ function createMockRun(mode, documentIds) {
   return {
     mode,
     documentIds,
-    run_id: `${mode}-static-${now}`,
+    run_id: `${mode}-demo-${now}`,
     startedAt: now,
     durationMs: 4400
   };
@@ -504,11 +545,11 @@ function mockEventTemplates(mode) {
     {
       phase: "接入与探测",
       event_type: "hardware",
-      source: "browser-static-demo",
+      source: "browser-demo",
       target: "host-compute",
       action: "probe_resources",
       status: "ok",
-      detail: "读取静态 GPU 样例，展示宿主机只提供算力资源。"
+      detail: "读取演示版 GPU 样例，展示宿主机只提供算力资源。"
     },
     {
       phase: "隔离环境初始化",
@@ -594,7 +635,7 @@ function buildMockReport(run, verified) {
     duration_ms: run.durationMs,
     selected_documents: run.documentIds,
     events,
-    safety_boundary: "纯演示版验证页面流程和可视化逻辑；真实训练、真实扫描和真实加密请运行 FastAPI 版本。",
+    safety_boundary: "演示版验证页面流程和可视化逻辑；真实训练、真实扫描和真实加密请运行 FastAPI 版本。",
     sentinel: {
       host_plaintext_found: baseline,
       host_plaintext_hits: baseline ? [{ path: cacheFiles[0], count: 2 }] : []
@@ -607,12 +648,12 @@ function buildMockReport(run, verified) {
       encrypted_entropy_bits_per_byte: baseline ? null : 7.91
     },
     training: {
-      device: "static-demo",
+      device: "web-demo",
       loss_last: baseline ? 0.16241 : 0.13876,
-      adapter_path: `vault_drive/adapters/adapter_${run.mode}_static.pt`
+      adapter_path: `vault_drive/adapters/adapter_${run.mode}_demo.pt`
     },
     paths: {
-      adapter: `vault_drive/adapters/adapter_${run.mode}_static.pt`
+      adapter: `vault_drive/adapters/adapter_${run.mode}_demo.pt`
     }
   };
   if (verified) {
@@ -675,7 +716,7 @@ function buildMockVerification(report) {
         status: "pass",
         result: "报告字段完整",
         method: "检查 run_id、事件、训练指标和缓存摘要。",
-        evidence: "静态报告结构完整。"
+        evidence: "演示版报告结构完整。"
       }
     ]
   };
@@ -700,14 +741,14 @@ function mockModelAnswer(question) {
     ],
     cache_verification: {
       host_plaintext_found: false,
-      encrypted_cache_files: ["host_scratch/model_inference/static_context.cache.enc"]
+      encrypted_cache_files: ["host_scratch/model_inference/demo_context.cache.enc"]
     },
     model_backend: {
-      static_demo: true,
+      demo_mode: true,
       real_model: false,
       loaded: true,
-      model_id: "Qwen2.5-Static-Preset",
-      backend: "github-pages-static-demo",
+      model_id: "Qwen2.5-Demo-Preset",
+      backend: "github-pages-demo",
       device: "browser",
       input_tokens: 512,
       new_tokens: 96,
@@ -775,8 +816,8 @@ function renderModelStatus(status) {
   state.modelStatus = status;
   const backend = $("#modelBackend");
   backend.classList.remove("safe", "danger", "warning");
-  if (status?.static_demo) {
-    backend.textContent = "GitHub Pages 静态预设 · 无需加载模型";
+  if (status?.demo_mode || status?.static_demo) {
+    backend.textContent = "网页演示版预设问答 · 无需加载模型";
     backend.classList.add("safe");
     $("#modelState").textContent = "预设问答";
     return;
@@ -1425,7 +1466,10 @@ function buildRuntimeRecommendation(config, selectedGpuIds) {
   };
   let recommended;
   let reason;
-  if (totalMib >= 48000 && gpus.length >= 2) {
+  if (freeMib >= 52000 || totalMib >= 80000) {
+    recommended = bestOption(32) || bestOption(14) || bestOption(7);
+    reason = "已选择 80GB 级或多卡高显存组合，适合演示 32B 级模型的分布式加载建议。";
+  } else if (totalMib >= 48000 && gpus.length >= 2) {
     recommended = bestOption(14) || bestOption(7) || bestOption(1.5);
     reason = "已选择多张高显存 GPU，适合 14B 级模型并通过 device_map=auto 分布加载。";
   } else if (totalMib >= 20000) {
@@ -1674,8 +1718,8 @@ function appendModelAnswer(payload) {
   node.className = "message vault";
 
   const title = document.createElement("strong");
-  title.textContent = backend.static_demo
-    ? "本地 Qwen + 私有文档上下文（静态模拟）"
+  title.textContent = (backend.demo_mode || backend.static_demo)
+    ? "本地 Qwen + 私有文档上下文（网页演示版）"
     : backend.real_model ? "本地 Qwen + 私有文档上下文" : "私有文档增强模型（降级）";
   node.appendChild(title);
 
@@ -1720,8 +1764,8 @@ function appendModelAnswer(payload) {
 }
 
 function modelMetaText(backend) {
-  if (backend.static_demo) {
-    return `纯演示版预设回答 · ${basename(backend.model_id || "Qwen")} · 无需 GPU/后端服务`;
+  if (backend.demo_mode || backend.static_demo) {
+    return `网页演示版预设回答 · ${basename(backend.model_id || "Qwen")} · 无需 GPU/后端服务`;
   }
   if (backend.real_model) {
     return `真实本地模型 · ${basename(backend.model_id || "Qwen")} · ${backend.device || "device"} · 输入 ${backend.input_tokens || "--"} tokens · 生成 ${backend.new_tokens || "--"} tokens · ${backend.generate_seconds || "--"}s`;

@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.runtime_config.env
+.conda*/
+demo_server.log
+*.log
+
+# Local runtime data and generated artifacts
+vault_drive/
+host_scratch/
+reports/
+
+# Editor / OS noise
+.DS_Store
+.vscode/

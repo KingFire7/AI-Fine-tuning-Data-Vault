@@ -1,0 +1,14 @@
+fastapi>=0.99,<0.100
+pydantic>=1.10,<2
+starlette>=0.27,<0.28
+uvicorn>=0.23
+cryptography>=39.0,<40
+torch>=2.0
+transformers==4.45.2
+tokenizers>=0.20,<0.21
+safetensors>=0.4.5
+huggingface_hub>=0.24,<1.0
+accelerate>=0.34,<0.35
+sentencepiece>=0.2
+psutil>=5.9
+typing_extensions>=4.10

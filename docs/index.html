@@ -126,7 +126,7 @@
           <div class="panel-header compact">
             <div>
               <h2 id="modelTitle">大模型使用窗口</h2>
-              <span id="modelState" class="mini-pill">等待提问</span>
+              <span id="modelState" class="mini-pill">请先选择模式</span>
               <span id="modelBackend" class="mini-pill">Qwen 状态加载中</span>
             </div>
             <button id="sampleQuestionBtn" class="icon-btn" type="button" title="填入示例问题">
@@ -142,9 +142,9 @@
             </div>
           </div>
           <div id="presetQuestionBank" class="preset-question-bank" aria-label="预设问题"></div>
-          <div class="ask-row">
+          <div class="ask-row" id="askGate" data-tooltip="请先选择模拟运行方式：无保护模式或保险箱模式。">
             <textarea id="questionInput" rows="3" aria-label="模型问题" readonly>患者胸痛伴出汗，应该优先参考哪份流程？</textarea>
-            <button id="askBtn" class="btn btn-primary" type="button">
+            <button id="askBtn" class="btn btn-primary" type="button" disabled title="请先选择模拟运行方式：无保护模式或保险箱模式。">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z" />
               </svg>
@@ -287,7 +287,7 @@
               <div>
                 <h2 id="reportTitle">风险检测</h2>
               </div>
-              <button id="verifyBtn" class="btn btn-secondary verify-btn" type="button" disabled>
+              <button id="verifyBtn" class="btn btn-secondary verify-btn" type="button" disabled title="请先选择模拟运行方式并等待运行完成后再检测。">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M9 12l2 2 4-5M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6l-7-3Z" />
                 </svg>

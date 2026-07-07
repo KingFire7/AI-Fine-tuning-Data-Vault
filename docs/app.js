@@ -253,6 +253,41 @@ function setBusy(isBusy) {
   $("#vaultBtn").disabled = isBusy;
 }
 
+function setAskButtonEnabled(enabled, message) {
+  const button = $("#askBtn");
+  const gate = $("#askGate");
+  if (!button) {
+    return;
+  }
+  const tooltip = message || "";
+  button.disabled = !enabled;
+  button.title = tooltip;
+  button.dataset.tooltip = tooltip;
+  if (gate) {
+    if (tooltip) {
+      gate.dataset.tooltip = tooltip;
+    } else {
+      delete gate.dataset.tooltip;
+    }
+  }
+  if (!enabled) {
+    $("#modelState").textContent = "请先选择模式";
+  } else if (!staticDemo.modelLoaded) {
+    $("#modelState").textContent = "等待提问";
+  }
+}
+
+function updateDemoInteractionGate() {
+  const hasMode = state.activeMode === "baseline" || state.activeMode === "vault";
+  setAskButtonEnabled(
+    hasMode,
+    hasMode ? "选择预设问题后可模拟本地模型回答。" : "请先选择模拟运行方式：无保护模式或保险箱模式。"
+  );
+  if (!hasMode) {
+    setVerifyButton(null, false);
+  }
+}
+
 function setModeButtons(mode, status) {
   const baseline = $("#baselineBtn");
   const vault = $("#vaultBtn");
@@ -892,7 +927,9 @@ function renderModelStatus(status) {
       ? `网页演示版预设问答 · ${status.model_id || "Qwen"} · 已加载`
       : `网页演示版预设问答 · ${status.model_id || "Qwen"} · 首次提问后加载`;
     backend.classList.add("safe");
-    $("#modelState").textContent = status.loaded ? "推理完成" : "等待提问";
+    $("#modelState").textContent = state.activeMode
+      ? status.loaded ? "推理完成" : "等待提问"
+      : "请先选择模式";
     return;
   }
   if (!status || !status.enabled) {
@@ -1637,6 +1674,7 @@ async function startRun(mode) {
   setBusy(true);
   setTopology(mode, "running");
   resetReport(mode);
+  updateDemoInteractionGate();
   const endpoint = mode === "vault" ? "/api/demo/vault" : "/api/demo/baseline";
   try {
     const run = await api(endpoint, {
@@ -1677,6 +1715,7 @@ async function pollRun() {
       const report = await api(`/api/demo/${state.runId}/report`);
       renderReport(report);
       setTopology(report.mode, report.status);
+      updateDemoInteractionGate();
     }
   } catch (error) {
     clearPoll();
@@ -1689,6 +1728,10 @@ async function pollRun() {
 }
 
 async function askModel() {
+  if (!(state.activeMode === "baseline" || state.activeMode === "vault")) {
+    setAskButtonEnabled(false, "请先选择模拟运行方式：无保护模式或保险箱模式。");
+    return;
+  }
   const question = $("#questionInput").value.trim();
   if (!question) {
     return;
@@ -2114,8 +2157,18 @@ function setVerifyButton(report, running) {
   if (!button) {
     return;
   }
+  const hasMode = state.activeMode === "baseline" || state.activeMode === "vault";
   const canVerify = Boolean(report && report.run_id && report.status === "completed");
   button.disabled = running || !canVerify;
+  const tooltip = !hasMode
+    ? "请先选择模拟运行方式：无保护模式或保险箱模式。"
+    : running
+      ? "检测正在执行，请稍候。"
+      : canVerify
+        ? "点击后重新扫描宿主机明文残留、缓存形态和错误密钥状态。"
+        : "请等待当前模拟运行完成并生成报告后再进行检测。";
+  button.title = tooltip;
+  button.dataset.tooltip = tooltip;
   button.innerHTML = `
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M9 12l2 2 4-5M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6l-7-3Z" />
@@ -2127,7 +2180,8 @@ function setVerifyButton(report, running) {
 async function runVerification() {
   const report = state.currentReport;
   const runId = state.runId || report?.run_id;
-  if (!runId) {
+  if (!(state.activeMode === "baseline" || state.activeMode === "vault") || !runId || !report || report.status !== "completed") {
+    setVerifyButton(report || null, false);
     return;
   }
   appendLocalEvent({
@@ -2630,6 +2684,7 @@ document.addEventListener("visibilitychange", () => {
 loadModelStatus();
 loadDocuments();
 renderFileFlow([], "等待运行");
+updateDemoInteractionGate();
 loadLatestReport();
 state.eventRefreshTimer = window.setInterval(refreshTimeline, 3000);
 updatePageFlipButton();

@@ -160,12 +160,14 @@ const staticDemo = {
       terms: ["感冒", "普通感冒", "流行性感冒"]
     },
     {
-      id: "copd",
-      question: "慢阻肺患者随访需要确认什么？",
-      answer: "需要复核吸入药名称、使用频次、吸入手法和近期急性加重次数，同时记录血氧饱和度、呼吸频率、肺部听诊和影像变化。",
-      sourceTitle: "呼吸科分诊记录",
-      snippet: "慢阻肺患者需要复核吸入药名称、使用频次、吸入手法和近期急性加重次数。",
-      terms: ["慢阻肺", "吸入药", "随访"]
+      id: "followup",
+      question: "术后随访需要重点确认哪些内容？",
+      answer: "根据已上传的术后随访摘要，术后随访应重点确认伤口情况、体温、疼痛评分、复查时间和异常症状。若出现持续发热、伤口渗液、明显出血或胸闷气短，应提示及时线下复诊。",
+      missingAnswer: "当前已选文档中没有找到“术后随访摘要”的相关内容。请先在微调文档区点击上传按钮，选择“术后随访摘要”模拟加入移动保险箱后，再重新提问。",
+      sourceTitle: "术后随访摘要",
+      snippet: "术后随访需确认伤口情况、体温、疼痛评分、复查时间和异常症状。",
+      terms: ["术后", "随访", "伤口", "复查"],
+      requiresDocumentId: "mock_followup.txt"
     }
   ]
 };
@@ -835,17 +837,21 @@ function mockModelAnswer(question) {
     normalized.includes(item.question) ||
     item.terms.some((term) => normalized.includes(term))
   ) || staticDemo.questions[0];
+  const requiredDocumentReady = !match.requiresDocumentId ||
+    (staticDemo.documents.some((doc) => doc.id === match.requiresDocumentId) &&
+      state.selectedDocuments.has(match.requiresDocumentId));
+  const snippets = requiredDocumentReady ? [
+    {
+      title: match.sourceTitle,
+      document_id: match.sourceTitle,
+      snippet: match.snippet,
+      relevance: 0.92,
+      matched_terms: match.terms
+    }
+  ] : [];
   return {
-    vault_answer: match.answer,
-    retrieved_snippets: [
-      {
-        title: match.sourceTitle,
-        document_id: match.sourceTitle,
-        snippet: match.snippet,
-        relevance: 0.92,
-        matched_terms: match.terms
-      }
-    ],
+    vault_answer: requiredDocumentReady ? match.answer : match.missingAnswer,
+    retrieved_snippets: snippets,
     cache_verification: {
       host_plaintext_found: false,
       encrypted_cache_files: ["host_scratch/model_inference/demo_context.cache.enc"]

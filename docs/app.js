@@ -21,7 +21,8 @@ const state = {
     vault: null
   },
   proofRunningMode: null,
-  currentReport: null
+  currentReport: null,
+  modeSelected: false
 };
 
 const runtimeRestartStorageKey = "aiVaultRuntimeRestart";
@@ -278,7 +279,7 @@ function setAskButtonEnabled(enabled, message) {
 }
 
 function updateDemoInteractionGate() {
-  const hasMode = state.activeMode === "baseline" || state.activeMode === "vault";
+  const hasMode = state.modeSelected || state.activeMode === "baseline" || state.activeMode === "vault";
   setAskButtonEnabled(
     hasMode,
     hasMode ? "选择预设问题后可模拟本地模型回答。" : "请先选择模拟运行方式：无保护模式或保险箱模式。"
@@ -1667,8 +1668,16 @@ async function refreshTimeline() {
   }
 }
 
+function selectDemoMode(mode) {
+  state.modeSelected = true;
+  state.activeMode = mode;
+  setAskButtonEnabled(true, "选择预设问题后可模拟本地模型回答。");
+  startRun(mode);
+}
+
 async function startRun(mode) {
   clearPoll();
+  state.modeSelected = true;
   state.activeMode = mode;
   state.proofRunningMode = mode;
   setBusy(true);
@@ -1728,7 +1737,7 @@ async function pollRun() {
 }
 
 async function askModel() {
-  if (!(state.activeMode === "baseline" || state.activeMode === "vault")) {
+  if (!(state.modeSelected || state.activeMode === "baseline" || state.activeMode === "vault")) {
     setAskButtonEnabled(false, "请先选择模拟运行方式：无保护模式或保险箱模式。");
     return;
   }
@@ -1767,7 +1776,7 @@ async function askModel() {
     appendMessage("system", "推理失败", error.message);
     $("#modelState").textContent = "失败";
   } finally {
-    $("#askBtn").disabled = false;
+    updateDemoInteractionGate();
   }
 }
 
@@ -1901,6 +1910,10 @@ function setTopology(mode, status) {
   map.classList.remove("idle", "baseline", "vault");
   map.classList.add(mode || "idle");
   setModeButtons(mode, status);
+  if (mode === "baseline" || mode === "vault") {
+    state.modeSelected = true;
+    setAskButtonEnabled(true, "选择预设问题后可模拟本地模型回答。");
+  }
 
   const statusPill = $("#runStatus");
   if (status === "running") {
@@ -2180,7 +2193,7 @@ function setVerifyButton(report, running) {
 async function runVerification() {
   const report = state.currentReport;
   const runId = state.runId || report?.run_id;
-  if (!(state.activeMode === "baseline" || state.activeMode === "vault") || !runId || !report || report.status !== "completed") {
+  if (!(state.modeSelected || state.activeMode === "baseline" || state.activeMode === "vault") || !runId || !report || report.status !== "completed") {
     setVerifyButton(report || null, false);
     return;
   }
@@ -2579,8 +2592,8 @@ function flipPage() {
   window.setTimeout(updatePageFlipButton, 420);
 }
 
-$("#baselineBtn").addEventListener("click", () => startRun("baseline"));
-$("#vaultBtn").addEventListener("click", () => startRun("vault"));
+$("#baselineBtn").addEventListener("click", () => selectDemoMode("baseline"));
+$("#vaultBtn").addEventListener("click", () => selectDemoMode("vault"));
 $("#refreshHardware").addEventListener("click", loadHardware);
 $("#runtimeEditBtn").addEventListener("click", toggleRuntimeEditing);
 $("#runtimeApplyBtn").addEventListener("click", applyRuntimeConfig);

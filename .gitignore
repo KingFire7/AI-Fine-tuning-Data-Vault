@@ -8,7 +8,10 @@ demo_server.log
 *.log
 
 # Local runtime data and generated artifacts
-vault_drive/
+vault_drive/*
+!vault_drive/
+!vault_drive/fine_tune_docs/
+!vault_drive/fine_tune_docs/*.txt
 host_scratch/
 reports/
 

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI 微调数据保险箱 - 静态演示版</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">AI+</div>
+          <div>
+            <div class="kicker">STATIC PAGE DEMO · NO GPU REQUIRED</div>
+            <h1>AI 微调数据保险箱</h1>
+            <div class="tags">
+              <span>移动保险箱</span>
+              <span>宿主机算力</span>
+              <span>加密缓存</span>
+            </div>
+          </div>
+        </div>
+        <div class="mode-actions">
+          <button id="baselineBtn" class="btn danger" type="button">无保护模式</button>
+          <button id="vaultBtn" class="btn primary active" type="button">保险箱模式</button>
+        </div>
+      </header>
+
+      <main class="grid">
+        <section class="panel docs-panel">
+          <div class="panel-head">
+            <div>
+              <h2>微调文档</h2>
+              <span id="docCount" class="pill">3 份示例</span>
+            </div>
+            <button id="openUploadBtn" class="icon-btn" type="button" title="模拟上传文档">
+              <span>上传</span>
+            </button>
+          </div>
+          <p class="panel-note">静态版不会读取本地文件，点击上传后可从预设文档中模拟加入移动保险箱。</p>
+          <div id="docList" class="doc-list"></div>
+        </section>
+
+        <section class="panel model-panel">
+          <div class="panel-head">
+            <div>
+              <h2>大模型使用窗口</h2>
+              <span id="modelState" class="pill">静态预设问答</span>
+            </div>
+          </div>
+          <div id="chatLog" class="chat-log">
+            <div class="message system">
+              <strong>纯演示模式</strong>
+              <span>这里不加载 Qwen 权重，只用预设问题和预设回答展示“私有文档检索 + 回答 + 引用依据”的交互效果。</span>
+            </div>
+          </div>
+          <div class="question-bank" id="questionBank"></div>
+          <button id="sendQuestionBtn" class="btn primary wide" type="button">发送所选问题</button>
+        </section>
+
+        <section class="panel topology-panel">
+          <div class="panel-head">
+            <div>
+              <h2>三层隔离拓扑与运行时流程展示</h2>
+              <span id="runStatus" class="pill safe">保险箱待演示</span>
+            </div>
+            <span id="currentStep" class="step-badge">待机</span>
+          </div>
+          <div class="topology">
+            <div class="focus">
+              <strong id="focusTitle">等待演示运行</strong>
+              <span id="focusDetail">点击上方模式按钮后，模块会按执行阶段高亮。</span>
+            </div>
+            <div class="layer host">
+              <div class="layer-label">第 3 层 · 宿主机资源层</div>
+              <div class="node compute" data-node="compute">
+                <strong>GPU / CPU 算力</strong>
+                <small>静态版仅展示资源透传概念</small>
+              </div>
+              <div class="node cache" data-node="cache">
+                <strong>宿主机临时盘</strong>
+                <small id="cacheState">等待缓存事件</small>
+              </div>
+            </div>
+            <div class="layer runtime">
+              <div class="layer-label">第 2 层 · 隔离运行环境层</div>
+              <div class="node router" data-node="router">
+                <strong>I/O 路由</strong>
+                <small>控制移动保险箱与宿主机路径</small>
+              </div>
+              <div class="node key" data-node="key">
+                <strong>本次运行密钥</strong>
+                <small id="keyState">未生成</small>
+              </div>
+              <div class="node train" data-node="train">
+                <strong>轻量微调训练</strong>
+                <small>模拟参数更新过程</small>
+              </div>
+            </div>
+            <div class="layer vault">
+              <div class="layer-label">第 1 层 · 物理数据存储层</div>
+              <div class="node data" data-node="data">
+                <strong>私有文档区</strong>
+                <small>示例文档归属移动保险箱</small>
+              </div>
+              <div class="node adapter" data-node="adapter">
+                <strong>微调参数文件</strong>
+                <small id="adapterState">等待保存</small>
+              </div>
+            </div>
+            <div id="stageButtons" class="stages"></div>
+          </div>
+        </section>
+
+        <section class="panel resources-panel">
+          <div class="panel-head">
+            <div>
+              <h2>运行资源</h2>
+              <span class="pill">静态样例</span>
+            </div>
+          </div>
+          <div class="gpu-list">
+            <div class="gpu-card">
+              <div class="gpu-title">GPU 4 · RTX 4090</div>
+              <div class="bar"><span class="free" style="width: 55%"></span><span class="other" style="width: 32%"></span><span class="ours" style="width: 13%"></span></div>
+              <div class="legend"><span>空闲 13.2GB</span><span>其他进程 7.7GB</span><span>本程序 3.1GB</span></div>
+            </div>
+            <div class="gpu-card">
+              <div class="gpu-title">GPU 5 · RTX 4090</div>
+              <div class="bar"><span class="free" style="width: 72%"></span><span class="other" style="width: 20%"></span><span class="ours" style="width: 8%"></span></div>
+              <div class="legend"><span>空闲 17.3GB</span><span>其他进程 4.8GB</span><span>本程序 1.9GB</span></div>
+            </div>
+          </div>
+          <p class="panel-note">此区域为固定样例，真实资源检测请运行 FastAPI 版本。</p>
+        </section>
+
+        <section class="panel risk-panel">
+          <div class="panel-head">
+            <div>
+              <h2>风险检测</h2>
+              <span id="riskMode" class="pill">保险箱模式</span>
+            </div>
+            <button id="checkBtn" class="btn secondary" type="button">进行检测</button>
+          </div>
+          <div id="riskCards" class="risk-cards"></div>
+        </section>
+
+        <section class="panel compare-panel">
+          <div class="panel-head">
+            <div>
+              <h2>无保护 vs 保险箱对比</h2>
+              <span class="pill">静态证据链</span>
+            </div>
+          </div>
+          <div id="compareGrid" class="compare-grid"></div>
+        </section>
+
+        <section class="panel timeline-panel">
+          <div class="panel-head">
+            <div>
+              <h2>事件时间线</h2>
+              <span id="eventCount" class="pill">0 条事件</span>
+            </div>
+          </div>
+          <div id="eventList" class="event-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="uploadDialog" class="upload-dialog">
+      <form method="dialog">
+        <div class="dialog-head">
+          <div>
+            <h2>模拟上传微调文档</h2>
+            <p>从预设文档中选择一份加入移动保险箱。</p>
+          </div>
+          <button class="icon-btn" value="cancel" type="submit">关闭</button>
+        </div>
+        <div id="uploadChoices" class="upload-choices"></div>
+      </form>
+    </dialog>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

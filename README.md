@@ -10,6 +10,22 @@
 
 模型权重、conda 环境、运行日志、验证报告和临时缓存不会进入 Git 仓库；首次运行时会在本地重新生成或按配置下载。
 
+## GitHub Pages 纯演示版
+
+仓库包含一个无需 GPU、无需后端服务的纯静态演示版本，位于 `docs/` 目录。该版本用于没有运算资源或无法访问 SSH 服务器时展示界面流程：
+
+- 微调文档上传改为从 3 份预设文档中模拟加入移动保险箱。
+- 大模型提问改为选择预设问题，并返回预设回答和引用依据。
+- 三层拓扑、风险检测、运行资源、对比和事件时间线均为前端静态演示。
+
+推送到 `main` 后，GitHub Actions 会自动部署 `docs/` 到 GitHub Pages。仓库 Pages 地址通常为：
+
+```text
+https://kingfire7.github.io/AI-Fine-tuning-Data-Vault/
+```
+
+如果首次访问没有页面，请在 GitHub 仓库的 `Settings -> Pages` 中确认部署来源为 `GitHub Actions`。
+
 ## Qwen 真实模型模式
 
 首次准备 conda 环境：

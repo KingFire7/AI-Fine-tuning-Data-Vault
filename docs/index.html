@@ -3,184 +3,362 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI 微调数据保险箱 - 静态演示版</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <title>AI 微调数据保险箱 - 纯演示版</title>
+    <link rel="stylesheet" href="./styles.css?v=pages-mirror1" />
   </head>
   <body>
-    <div class="shell">
+    <aside class="usage-guide" aria-labelledby="usageGuideTitle">
+      <div class="usage-guide-header">
+        <span>Prototype Guide</span>
+        <h2 id="usageGuideTitle">AI 微调数据保险箱测试原型使用说明</h2>
+        <p>本测试原型为大学生 AI+ 移动存储场景融合创新大赛参赛作品，作者为胡家铭。</p>
+      </div>
+      <div class="usage-guide-body">
+        <section>
+          <h3>项目概述</h3>
+          <p>本原型展示一种面向 AI 微调数据的移动存储保护方案：敏感文档、训练样本和微调参数文件归属于移动保险箱，宿主机主要提供 GPU/CPU 算力；中间缓存以加密形式临时存放，退出后通过检测验证宿主机明文残留。</p>
+        </section>
+        <section>
+          <h3>基本使用流程</h3>
+          <ol>
+            <li>在“微调文档”中选择现有文档，或上传/写入新的测试文档。</li>
+            <li>在“大模型使用窗口”中向本地 Qwen 提问，观察文档检索、模型推理和缓存处理流程。</li>
+            <li>点击“无保护模式”运行对照流程，观察敏感明文如何落入宿主机临时目录。</li>
+            <li>点击“保险箱模式”运行保护流程，观察缓存加密暂存和结果保存回移动保险箱。</li>
+            <li>使用右侧翻页按钮进入第二页，查看运行资源、风险检测、无保护 vs 保险箱对比和事件时间线。</li>
+            <li>在“风险检测”中点击“进行检测”，触发宿主机明文扫描、缓存形态验证、错误密钥验证和报告完整性检查。</li>
+          </ol>
+        </section>
+        <section>
+          <h3>页面模块说明</h3>
+          <p><strong>微调文档：</strong>管理用于微调/检索的合成文档，支持选择、上传、写入和删除。</p>
+          <p><strong>大模型使用窗口：</strong>调用本地 Qwen 模型，结合已选文档回答问题，并展示私有文档引用和本地模型状态。</p>
+          <p><strong>三层隔离拓扑与运行时流程展示：</strong>按执行阶段高亮宿主机资源层、隔离运行环境层和物理数据存储层。</p>
+          <p><strong>运行资源：</strong>动态展示宿主机 GPU、显存占用、其他进程占用、本程序资源使用情况，并支持调整运行 GPU 和本地模型参数量。</p>
+          <p><strong>风险检测：</strong>手动触发检测，证明无保护模式的风险和保险箱模式的保护效果。</p>
+          <p><strong>无保护 vs 保险箱对比：</strong>上下对比展示无保护模式的明文残留风险和保险箱模式的加密缓存、错误密钥验证、产物归属结果。</p>
+          <p><strong>事件时间线：</strong>记录训练、缓存、结果保存、退出和检测过程中的审计事件，点击条目可展开查看细节。</p>
+        </section>
+        <section>
+          <h3>安全边界</h3>
+          <p>该原型验证应用层数据流控制、缓存加密暂存和可视化审计链路，不宣称防御 root 权限、内核后门、物理内存转储或总线监听。</p>
+        </section>
+      </div>
+    </aside>
+    <div class="app-shell">
       <header class="topbar">
         <div class="brand">
-          <div class="brand-mark">AI+</div>
-          <div>
-            <div class="kicker">STATIC PAGE DEMO · NO GPU REQUIRED</div>
-            <h1>AI 微调数据保险箱</h1>
-            <div class="tags">
+          <div class="brand-mark" aria-hidden="true">
+            <span class="brand-mark-core">AI+</span>
+          </div>
+          <div class="brand-copy">
+            <div class="brand-kicker">
+              <span>STATIC DEMO</span>
+              <i></i>
+              <span>SSD DATA BOUNDARY</span>
+            </div>
+            <h1><span>AI 微调</span><strong>数据保险箱</strong></h1>
+            <div class="brand-tags" aria-label="核心能力">
               <span>移动保险箱</span>
               <span>宿主机算力</span>
               <span>加密缓存</span>
+              <span>无需 GPU</span>
             </div>
           </div>
         </div>
-        <div class="mode-actions">
-          <button id="baselineBtn" class="btn danger" type="button">无保护模式</button>
-          <button id="vaultBtn" class="btn primary active" type="button">保险箱模式</button>
+        <div class="actions">
+          <button id="baselineBtn" class="btn btn-danger" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+            </svg>
+            无保护模式
+          </button>
+          <button id="vaultBtn" class="btn btn-primary" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 11V8a5 5 0 0 1 10 0v3m-9 0h8a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z" />
+            </svg>
+            保险箱模式
+          </button>
         </div>
       </header>
 
-      <main class="grid">
-        <section class="panel docs-panel">
-          <div class="panel-head">
+      <section id="homePage" class="page-section home-page" aria-label="首页演示区">
+      <div class="primary-workbench" aria-label="核心演示区">
+        <section class="panel document-panel" aria-labelledby="documentTitle">
+          <div class="panel-header compact">
             <div>
-              <h2>微调文档</h2>
-              <span id="docCount" class="pill">3 份示例</span>
+              <h2 id="documentTitle">微调文档</h2>
+              <span id="docCount" class="mini-pill">加载中</span>
             </div>
-            <button id="openUploadBtn" class="icon-btn" type="button" title="模拟上传文档">
-              <span>上传</span>
+            <div class="panel-actions">
+              <input id="filePicker" type="file" accept=".txt,.md,.json,.csv" hidden />
+              <button id="pickFileBtn" class="icon-btn" type="button" title="选择本地文档">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 21V9m0 0 4 4m-4-4-4 4M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+              <button id="refreshDocsBtn" class="icon-btn" type="button" title="刷新文档">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16m0 0v5h5M3 12A9 9 0 0 1 18.5 5.8L21 8m0 0V3h-5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div id="docList" class="doc-list"></div>
+          <div class="quick-upload">
+            <div class="quick-upload-help">
+              <strong>手动写入测试文档</strong>
+              <span>纯演示版不会访问本地文件系统，点击保存后会把文本加入页面内置的模拟文档列表。</span>
+            </div>
+            <input id="docNameInput" type="text" value="uploaded_case_note.txt" aria-label="文档名" />
+            <textarea id="docTextInput" rows="4" aria-label="文档内容">新上传病历摘要
+患者术后随访，需结合复查时间、用药调整和异常症状提醒进行问答适配。</textarea>
+            <button id="saveDocBtn" class="btn btn-secondary" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2ZM7 21v-8h10v8M7 3v5h8" />
+              </svg>
+              保存到移动保险箱
             </button>
           </div>
-          <p class="panel-note">静态版不会读取本地文件，点击上传后可从预设文档中模拟加入移动保险箱。</p>
-          <div id="docList" class="doc-list"></div>
         </section>
 
-        <section class="panel model-panel">
-          <div class="panel-head">
+        <section class="panel model-panel" aria-labelledby="modelTitle">
+          <div class="panel-header compact">
             <div>
-              <h2>大模型使用窗口</h2>
-              <span id="modelState" class="pill">静态预设问答</span>
+              <h2 id="modelTitle">大模型使用窗口</h2>
+              <span id="modelState" class="mini-pill">等待提问</span>
+              <span id="modelBackend" class="mini-pill">Qwen 状态加载中</span>
             </div>
+            <button id="sampleQuestionBtn" class="icon-btn" type="button" title="填入示例问题">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+              </svg>
+            </button>
           </div>
           <div id="chatLog" class="chat-log">
             <div class="message system">
-              <strong>纯演示模式</strong>
-              <span>这里不加载 Qwen 权重，只用预设问题和预设回答展示“私有文档检索 + 回答 + 引用依据”的交互效果。</span>
+              <strong>本地 Qwen 问答</strong>
+              <span>纯演示版不加载模型权重；请选择预设问题，页面会用固定回答模拟“私有文档检索 + 本地模型回答 + 引用依据”。</span>
             </div>
           </div>
-          <div class="question-bank" id="questionBank"></div>
-          <button id="sendQuestionBtn" class="btn primary wide" type="button">发送所选问题</button>
-        </section>
-
-        <section class="panel topology-panel">
-          <div class="panel-head">
-            <div>
-              <h2>三层隔离拓扑与运行时流程展示</h2>
-              <span id="runStatus" class="pill safe">保险箱待演示</span>
-            </div>
-            <span id="currentStep" class="step-badge">待机</span>
-          </div>
-          <div class="topology">
-            <div class="focus">
-              <strong id="focusTitle">等待演示运行</strong>
-              <span id="focusDetail">点击上方模式按钮后，模块会按执行阶段高亮。</span>
-            </div>
-            <div class="layer host">
-              <div class="layer-label">第 3 层 · 宿主机资源层</div>
-              <div class="node compute" data-node="compute">
-                <strong>GPU / CPU 算力</strong>
-                <small>静态版仅展示资源透传概念</small>
-              </div>
-              <div class="node cache" data-node="cache">
-                <strong>宿主机临时盘</strong>
-                <small id="cacheState">等待缓存事件</small>
-              </div>
-            </div>
-            <div class="layer runtime">
-              <div class="layer-label">第 2 层 · 隔离运行环境层</div>
-              <div class="node router" data-node="router">
-                <strong>I/O 路由</strong>
-                <small>控制移动保险箱与宿主机路径</small>
-              </div>
-              <div class="node key" data-node="key">
-                <strong>本次运行密钥</strong>
-                <small id="keyState">未生成</small>
-              </div>
-              <div class="node train" data-node="train">
-                <strong>轻量微调训练</strong>
-                <small>模拟参数更新过程</small>
-              </div>
-            </div>
-            <div class="layer vault">
-              <div class="layer-label">第 1 层 · 物理数据存储层</div>
-              <div class="node data" data-node="data">
-                <strong>私有文档区</strong>
-                <small>示例文档归属移动保险箱</small>
-              </div>
-              <div class="node adapter" data-node="adapter">
-                <strong>微调参数文件</strong>
-                <small id="adapterState">等待保存</small>
-              </div>
-            </div>
-            <div id="stageButtons" class="stages"></div>
+          <div id="presetQuestionBank" class="preset-question-bank" aria-label="预设问题"></div>
+          <div class="ask-row">
+            <textarea id="questionInput" rows="3" aria-label="模型问题" readonly>患者胸痛伴出汗，应该优先参考哪份流程？</textarea>
+            <button id="askBtn" class="btn btn-primary" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z" />
+              </svg>
+              发送
+            </button>
           </div>
         </section>
 
-        <section class="panel resources-panel">
-          <div class="panel-head">
+      </div>
+
+        <section class="panel topology-panel" aria-labelledby="topologyTitle">
+          <div class="panel-header">
             <div>
-              <h2>运行资源</h2>
-              <span class="pill">静态样例</span>
+              <h2 id="topologyTitle">三层隔离拓扑与运行时流程展示</h2>
+              <span id="runStatus" class="status-pill idle">待机</span>
+            </div>
+            <div class="run-meta">
+              <span id="activeRun">未运行</span>
             </div>
           </div>
-          <div class="gpu-list">
-            <div class="gpu-card">
-              <div class="gpu-title">GPU 4 · RTX 4090</div>
-              <div class="bar"><span class="free" style="width: 55%"></span><span class="other" style="width: 32%"></span><span class="ours" style="width: 13%"></span></div>
-              <div class="legend"><span>空闲 13.2GB</span><span>其他进程 7.7GB</span><span>本程序 3.1GB</span></div>
+
+          <div id="topologyMap" class="topology-map idle">
+            <div class="topology-current">
+              <span id="topologyStepBadge">待机</span>
+              <div>
+                <strong id="topologyFocus">等待演示运行</strong>
+                <p id="topologyFocusDetail">点击保险箱模式或无保护模式后，模块会随执行阶段逐步高亮。</p>
+              </div>
             </div>
-            <div class="gpu-card">
-              <div class="gpu-title">GPU 5 · RTX 4090</div>
-              <div class="bar"><span class="free" style="width: 72%"></span><span class="other" style="width: 20%"></span><span class="ours" style="width: 8%"></span></div>
-              <div class="legend"><span>空闲 17.3GB</span><span>其他进程 4.8GB</span><span>本程序 1.9GB</span></div>
+            <div class="layer host-layer">
+              <div class="layer-label">
+                <strong>第 3 层</strong>
+                <span>宿主机资源层</span>
+              </div>
+              <div class="node compute-node" data-topology-node="compute">
+                <span class="node-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3 5h4v4h-4z" />
+                  </svg>
+                </span>
+                <span>GPU / CPU 算力</span>
+                <small>仅提供训练和推理计算资源</small>
+              </div>
+              <div class="node cache-node" data-topology-node="cache">
+                <span class="node-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 7c0-2 3.6-4 8-4s8 2 8 4-3.6 4-8 4-8-2-8-4Zm0 0v5c0 2 3.6 4 8 4s8-2 8-4V7M4 12v5c0 2 3.6 4 8 4s8-2 8-4v-5" />
+                  </svg>
+                </span>
+                <span>宿主机临时盘</span>
+                <small id="cacheMode">等待缓存事件</small>
+              </div>
             </div>
+
+            <div class="layer sandbox-layer">
+              <div class="layer-label">
+                <strong>第 2 层</strong>
+                <span>隔离运行环境层</span>
+              </div>
+              <div class="node router-node" data-topology-node="router">
+                <span class="node-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 7h12m0 0-3-3m3 3-3 3M20 17H8m0 0 3-3m-3 3 3 3" />
+                  </svg>
+                </span>
+                <span>I/O 路由</span>
+                <small>控制移动保险箱与宿主机读写路径</small>
+              </div>
+              <div class="node key-node" data-topology-node="key">
+                <span class="node-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M21 2 11 12m-4 4 3-3m2-2 3 3-4 4H7v3H4v-3H1v-4l5-5a5 5 0 1 1 7 0" />
+                  </svg>
+                </span>
+                <span>本次运行密钥</span>
+                <small id="keyState">运行期生成，退出后销毁</small>
+              </div>
+              <div class="node engine-node" data-topology-node="engine">
+                <span class="node-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3v4m0 10v4M3 12h4m10 0h4M5.6 5.6l2.8 2.8m7.2 7.2 2.8 2.8m0-12.8-2.8 2.8m-7.2 7.2-2.8 2.8M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z" />
+                  </svg>
+                </span>
+                <span>轻量微调训练</span>
+                <small>更新少量参数，不改写基座模型</small>
+              </div>
+            </div>
+
+            <div class="layer vault-layer">
+              <div class="layer-label">
+                <strong>第 1 层</strong>
+                <span>物理数据存储层</span>
+              </div>
+              <div class="node data-node" data-topology-node="data">
+                <span class="node-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 6a8 3 0 1 0 16 0A8 3 0 1 0 4 6Zm0 0v6a8 3 0 1 0 16 0V6M4 12v6a8 3 0 1 0 16 0v-6" />
+                  </svg>
+                </span>
+                <span>合成隐私数据</span>
+                <small>文档和样本归属移动存储侧</small>
+              </div>
+              <div class="node adapter-node" data-topology-node="adapter">
+                <span class="node-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Zm0 0v6h6M8 13h8M8 17h5" />
+                  </svg>
+                </span>
+                <span>微调参数文件</span>
+                <small id="adapterState">尚未生成</small>
+              </div>
+            </div>
+
+            <div id="topologySteps" class="topology-steps"></div>
           </div>
-          <p class="panel-note">此区域为固定样例，真实资源检测请运行 FastAPI 版本。</p>
+        </section>
+      </section>
+
+      <main id="detailsPage" class="dashboard page-section details-page" aria-label="证据详情页">
+        <section class="evidence-grid" aria-label="运行证据">
+          <section class="panel hardware-panel" aria-labelledby="hardwareTitle">
+            <div class="panel-header compact">
+              <h2 id="hardwareTitle">运行资源</h2>
+              <button id="runtimeEditBtn" class="small-btn" type="button">调整运行资源</button>
+              <button id="runtimeApplyBtn" class="small-btn primary" type="button" disabled>确认</button>
+              <button id="refreshHardware" class="icon-btn" type="button" title="刷新硬件探测">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16m0 0v5h5M3 12A9 9 0 0 1 18.5 5.8L21 8m0 0V3h-5" />
+                </svg>
+              </button>
+            </div>
+            <div id="hardwareRestartNotice" class="hardware-restart-notice" hidden></div>
+            <div id="hardwareSummary" class="hardware-summary skeleton">加载中</div>
+            <div id="runtimeConfigPanel" class="runtime-config-panel"></div>
+            <div id="gpuList" class="gpu-list"></div>
+          </section>
+
+          <section class="panel report-panel" aria-labelledby="reportTitle">
+            <div class="panel-header compact">
+              <div>
+                <h2 id="reportTitle">风险检测</h2>
+              </div>
+              <button id="verifyBtn" class="btn btn-secondary verify-btn" type="button" disabled>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 12l2 2 4-5M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6l-7-3Z" />
+                </svg>
+                进行检测
+              </button>
+            </div>
+            <div class="metric-grid">
+              <div class="metric">
+                <span>宿主机明文</span>
+                <strong id="sentinelMetric">--</strong>
+              </div>
+              <div class="metric">
+                <span>错误密钥拒绝</span>
+                <strong id="keyMetric">--</strong>
+              </div>
+              <div class="metric">
+                <span>模型训练设备</span>
+                <strong id="deviceMetric">--</strong>
+              </div>
+              <div class="metric">
+                <span>训练最终 Loss</span>
+                <strong id="lossMetric">--</strong>
+              </div>
+            </div>
+            <div id="securityChecks" class="security-checks"></div>
+            <div id="reportDetails" class="report-details empty">暂无报告</div>
+          </section>
         </section>
 
-        <section class="panel risk-panel">
-          <div class="panel-head">
-            <div>
-              <h2>风险检测</h2>
-              <span id="riskMode" class="pill">保险箱模式</span>
+        <section class="support-grid" aria-label="补充细节">
+          <section class="panel flow-panel" aria-labelledby="flowTitle">
+            <div class="panel-header compact">
+              <div>
+                <h2 id="flowTitle">无保护 vs 保险箱对比</h2>
+              </div>
             </div>
-            <button id="checkBtn" class="btn secondary" type="button">进行检测</button>
-          </div>
-          <div id="riskCards" class="risk-cards"></div>
-        </section>
+            <div id="fileFlow" class="proof-compare"></div>
+          </section>
 
-        <section class="panel compare-panel">
-          <div class="panel-head">
-            <div>
-              <h2>无保护 vs 保险箱对比</h2>
-              <span class="pill">静态证据链</span>
+          <section class="panel timeline-panel" aria-labelledby="timelineTitle">
+            <div class="panel-header">
+              <div>
+                <h2 id="timelineTitle">事件时间线</h2>
+              </div>
             </div>
-          </div>
-          <div id="compareGrid" class="compare-grid"></div>
-        </section>
-
-        <section class="panel timeline-panel">
-          <div class="panel-head">
-            <div>
-              <h2>事件时间线</h2>
-              <span id="eventCount" class="pill">0 条事件</span>
-            </div>
-          </div>
-          <div id="eventList" class="event-list"></div>
+            <div id="eventList" class="event-list"></div>
+          </section>
         </section>
       </main>
+
+      <button id="pageFlipBtn" class="floating-page-btn" type="button" aria-label="向下翻页" title="向下翻页">
+        <svg id="pageFlipIcon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+        <span id="pageFlipText">下一页</span>
+      </button>
     </div>
 
-    <dialog id="uploadDialog" class="upload-dialog">
+    <dialog id="mockUploadDialog" class="mock-upload-dialog">
       <form method="dialog">
-        <div class="dialog-head">
+        <div class="mock-dialog-head">
           <div>
             <h2>模拟上传微调文档</h2>
-            <p>从预设文档中选择一份加入移动保险箱。</p>
+            <p>从预设文档中选择一份加入移动保险箱，页面不会读取你的本地文件。</p>
           </div>
-          <button class="icon-btn" value="cancel" type="submit">关闭</button>
+          <button class="small-btn" value="cancel" type="submit">关闭</button>
         </div>
-        <div id="uploadChoices" class="upload-choices"></div>
+        <div id="mockUploadChoices" class="mock-upload-choices"></div>
       </form>
     </dialog>
 
-    <script src="./app.js"></script>
+    <script src="./app.js?v=pages-mirror1"></script>
   </body>
 </html>

@@ -87,6 +87,14 @@ const staticDemo = {
     vault: null,
     latest: null
   },
+  modelLoaded: false,
+  runtime: {
+    selected_gpu_ids: [1, 2],
+    current_model_id: "Qwen/Qwen2.5-14B-Instruct",
+    current_model_label: "Qwen2.5 14B Instruct",
+    active_model_option_id: "Qwen/Qwen2.5-14B-Instruct",
+    device_map: "auto"
+  },
   documents: [
     {
       id: "cardiology_followup_protocol.txt",
@@ -293,15 +301,27 @@ function mockApi(path, options = {}) {
   }
   if (path === "/api/runtime/apply" && method === "POST") {
     const body = requestBody(options);
+    const selectedGpuIds = (body.gpu_ids || [])
+      .map((value) => Number(value))
+      .filter((value) => Number.isInteger(value));
+    const model = mockModelOptions().find((item) => item.id === body.model_id) || mockModelOptions()[0];
+    staticDemo.runtime = {
+      selected_gpu_ids: selectedGpuIds,
+      current_model_id: model.id,
+      current_model_label: model.label,
+      active_model_option_id: model.id,
+      device_map: body.device_map || "auto"
+    };
+    staticDemo.modelLoaded = false;
     return { ok: true, applied: body };
   }
   if (path === "/api/model/status") {
     return {
       enabled: true,
-      loaded: true,
+      loaded: staticDemo.modelLoaded,
       real_model: false,
       demo_mode: true,
-      model_id: "Qwen2.5-Demo-Preset",
+      model_id: staticDemo.runtime.current_model_label || "Qwen2.5-Demo-Preset",
       backend: "github-pages-demo",
       device: "browser",
       dtype: "preset",
@@ -380,6 +400,11 @@ function mockApi(path, options = {}) {
   }
   if (path === "/api/model/ask" && method === "POST") {
     const body = requestBody(options);
+    staticDemo.modelLoaded = true;
+    window.setTimeout(() => {
+      loadHardware();
+      loadModelStatus();
+    }, 50);
     return mockModelAnswer(body.question || "");
   }
   throw new Error(`Demo page has no route for ${method} ${path}`);
@@ -467,10 +492,9 @@ function mockGpuInventory() {
 }
 
 function mockHardware() {
-  const gpus = [
-    ...mockGpuInventory()
-  ];
-  const totals = gpus.reduce((acc, gpu) => {
+  const gpus = applyDemoRuntimeToGpus(mockGpuInventory());
+  const activeGpus = gpus.filter((gpu) => gpu.visible !== false);
+  const totals = (activeGpus.length ? activeGpus : gpus).reduce((acc, gpu) => {
     acc.total_mib += gpu.total_mib;
     acc.free_mib += gpu.free_mib;
     acc.our_used_mib += gpu.our_used_mib;
@@ -478,9 +502,9 @@ function mockHardware() {
     acc.avg_utilization_gpu += gpu.utilization_gpu;
     return acc;
   }, { total_mib: 0, free_mib: 0, our_used_mib: 0, other_used_mib: 0, avg_utilization_gpu: 0 });
-  totals.avg_utilization_gpu = Math.round(totals.avg_utilization_gpu / gpus.length);
-  totals.gpu_count = 8;
-  totals.visible_count = gpus.length;
+  totals.avg_utilization_gpu = Math.round(totals.avg_utilization_gpu / Math.max(1, (activeGpus.length ? activeGpus : gpus).length));
+  totals.gpu_count = gpus.length;
+  totals.visible_count = activeGpus.length;
   return {
     platform: "GitHub Pages 网页演示环境",
     python: "not-required",
@@ -495,21 +519,68 @@ function mockHardware() {
   };
 }
 
+function applyDemoRuntimeToGpus(gpus) {
+  const runtime = state.runtimeEditing && state.runtimeDraft
+    ? {
+        selected_gpu_ids: state.runtimeDraft.gpuIds || [],
+        current_model_id: state.runtimeDraft.modelId || staticDemo.runtime.current_model_id
+      }
+    : staticDemo.runtime;
+  const selected = new Set((runtime.selected_gpu_ids || []).map((id) => Number(id)));
+  const model = mockModelOptions().find((item) => item.id === runtime.current_model_id) || mockModelOptions()[0];
+  const selectedGpus = gpus.filter((gpu) => selected.has(Number(gpu.index)));
+  const loadedVram = staticDemo.modelLoaded ? Number(model.demo_vram_mib || 0) : Math.min(900, Number(model.demo_vram_mib || 0) * 0.08);
+  const perGpuModel = selectedGpus.length ? loadedVram / selectedGpus.length : 0;
+  return gpus.map((gpu) => {
+    const clone = { ...gpu };
+    const isSelected = selected.has(Number(gpu.index));
+    const wave = demoWave(gpu.index, 1);
+    const otherBase = Number(gpu.other_used_mib || 0);
+    const other = Math.max(0, Math.round(otherBase * (1 + wave * 0.018)));
+    const runtimeOverhead = isSelected ? 420 + Math.round(120 * demoWave(gpu.index + 11, 1)) : 0;
+    const modelShare = isSelected ? Math.round(perGpuModel * (1 + demoWave(gpu.index + 23, 0.018))) : 0;
+    const ours = Math.max(0, runtimeOverhead + modelShare);
+    const free = Math.max(0, Number(gpu.total_mib || 0) - other - ours);
+    clone.visible = isSelected;
+    clone.our_used_mib = ours;
+    clone.other_used_mib = other;
+    clone.used_mib = other + ours;
+    clone.free_mib = free;
+    clone.utilization_gpu = Math.max(0, Math.min(99, Math.round(Number(gpu.utilization_gpu || 0) + (isSelected && staticDemo.modelLoaded ? 12 : 0) + wave * 5)));
+    clone.temperature_c = Math.max(28, Math.round(Number(gpu.temperature_c || 40) + (isSelected && staticDemo.modelLoaded ? 4 : 0) + demoWave(gpu.index + 5, 2)));
+    clone.power_w = Math.max(30, Math.round(Number(gpu.power_w || 80) + (isSelected && staticDemo.modelLoaded ? 45 : 0) + demoWave(gpu.index + 9, 9)));
+    clone.processes = [
+      ...(isSelected && ours > 0 ? [{ pid: 42420, name: `${basename(model.id)}-web-demo`, used_mib: ours, owner: "ours" }] : []),
+      { pid: 18000 + gpu.index * 137, name: gpu.processes?.find((process) => process.owner !== "ours")?.name || "other-workload", used_mib: other, owner: "other" }
+    ];
+    return clone;
+  });
+}
+
+function demoWave(seed, amplitude = 1) {
+  return Math.sin(Date.now() / 4200 + seed * 1.37) * amplitude;
+}
+
 function mockRuntimeConfig() {
+  const runtime = staticDemo.runtime;
   return {
-    selected_gpu_ids: [1, 2],
-    current_model_id: "Qwen/Qwen2.5-14B-Instruct",
-    current_model_label: "Qwen2.5 14B Instruct",
-    active_model_option_id: "Qwen/Qwen2.5-14B-Instruct",
-    device_map: "auto",
-    gpu_options: mockGpuInventory(),
-    model_options: [
-      { id: "Qwen/Qwen2.5-0.5B-Instruct", label: "Qwen2.5 0.5B Instruct", params_b: 0.5, available: true, local: true },
-      { id: "Qwen/Qwen2.5-7B-Instruct", label: "Qwen2.5 7B Instruct", params_b: 7, available: true, local: true },
-      { id: "Qwen/Qwen2.5-14B-Instruct", label: "Qwen2.5 14B Instruct", params_b: 14, available: true, local: true },
-      { id: "Qwen/Qwen2.5-32B-Instruct", label: "Qwen2.5 32B Instruct", params_b: 32, available: true, local: false }
-    ]
+    selected_gpu_ids: [...runtime.selected_gpu_ids],
+    current_model_id: runtime.current_model_id,
+    current_model_label: runtime.current_model_label,
+    active_model_option_id: runtime.active_model_option_id,
+    device_map: runtime.device_map,
+    gpu_options: applyDemoRuntimeToGpus(mockGpuInventory()),
+    model_options: mockModelOptions()
   };
+}
+
+function mockModelOptions() {
+  return [
+    { id: "Qwen/Qwen2.5-0.5B-Instruct", label: "Qwen2.5 0.5B Instruct", params_b: 0.5, available: true, local: true, demo_vram_mib: 1600 },
+    { id: "Qwen/Qwen2.5-7B-Instruct", label: "Qwen2.5 7B Instruct", params_b: 7, available: true, local: true, demo_vram_mib: 11200 },
+    { id: "Qwen/Qwen2.5-14B-Instruct", label: "Qwen2.5 14B Instruct", params_b: 14, available: true, local: true, demo_vram_mib: 21800 },
+    { id: "Qwen/Qwen2.5-32B-Instruct", label: "Qwen2.5 32B Instruct", params_b: 32, available: true, local: false, demo_vram_mib: 52000 }
+  ];
 }
 
 function createMockRun(mode, documentIds) {
@@ -747,7 +818,7 @@ function mockModelAnswer(question) {
       demo_mode: true,
       real_model: false,
       loaded: true,
-      model_id: "Qwen2.5-Demo-Preset",
+      model_id: staticDemo.runtime.current_model_label || "Qwen2.5-Demo-Preset",
       backend: "github-pages-demo",
       device: "browser",
       input_tokens: 512,
@@ -817,9 +888,11 @@ function renderModelStatus(status) {
   const backend = $("#modelBackend");
   backend.classList.remove("safe", "danger", "warning");
   if (status?.demo_mode || status?.static_demo) {
-    backend.textContent = "网页演示版预设问答 · 无需加载模型";
+    backend.textContent = status.loaded
+      ? `网页演示版预设问答 · ${status.model_id || "Qwen"} · 已加载`
+      : `网页演示版预设问答 · ${status.model_id || "Qwen"} · 首次提问后加载`;
     backend.classList.add("safe");
-    $("#modelState").textContent = "预设问答";
+    $("#modelState").textContent = status.loaded ? "推理完成" : "等待提问";
     return;
   }
   if (!status || !status.enabled) {
@@ -2465,6 +2538,7 @@ $("#runtimeConfigPanel").addEventListener("change", (event) => {
   if (state.runtimeEditing && event.target.matches("input, select")) {
     syncRuntimeDraftFromForm();
     renderRuntimeConfig(state.runtimeConfig);
+    renderHardware(mockHardware());
   }
 });
 $("#eventList").addEventListener("toggle", (event) => {
@@ -2547,7 +2621,7 @@ renderPresetQuestions();
 renderMockUploadChoices();
 restoreRuntimeRestartState();
 loadHardware();
-state.hardwareTimer = window.setInterval(loadHardware, 15000);
+state.hardwareTimer = window.setInterval(loadHardware, 5000);
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
     loadHardware();

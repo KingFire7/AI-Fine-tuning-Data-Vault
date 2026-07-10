@@ -254,7 +254,12 @@ function renderModelStatus(status) {
   state.modelStatus = status;
   const backend = $("#modelBackend");
   backend.classList.remove("safe", "danger", "warning");
-  if (!status || !status.enabled) {
+  if (!status) {
+    backend.textContent = "Qwen 状态未知";
+    backend.classList.add("warning");
+    return;
+  }
+  if (status.enabled === false) {
     backend.textContent = "Qwen 已关闭";
     backend.classList.add("warning");
     return;
@@ -1016,7 +1021,9 @@ async function askModel() {
     loadingNode.remove();
     appendModelAnswer(payload);
     const nextStatus = {
+      ...(state.modelStatus || {}),
       ...backend,
+      enabled: backend.enabled ?? state.modelStatus?.enabled ?? true,
       loaded: backend.real_model || backend.loaded,
       last_error: backend.error || backend.last_error
     };

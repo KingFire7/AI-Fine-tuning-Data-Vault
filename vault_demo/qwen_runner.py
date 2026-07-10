@@ -120,6 +120,8 @@ class QwenRunner:
                 self._last_error = None
             return {
                 "ok": True,
+                "enabled": self.enabled,
+                "loaded": self._loaded,
                 "real_model": True,
                 "model_id": self.model_id,
                 "backend": "transformers-local-qwen",

@@ -12,6 +12,7 @@ import subprocess
 import threading
 import time
 import traceback
+import unicodedata
 import uuid
 from collections import Counter
 from datetime import datetime
@@ -1323,37 +1324,109 @@ def _compact_text(text: str, limit: int = 180) -> str:
 
 
 def _retrieve_snippets(question: str, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    scored = []
     query_tokens = _query_tokens(question)
-    question_chars = {char for char in question if _is_meaningful_char(char)}
+    query_identifiers = _identifier_keys(question)
+    total_weight = sum(_term_weight(token) for token in query_tokens) or 1.0
+    scored = []
+
     for doc in documents:
-        content = doc.get("content", "")
-        content_chars = {char for char in content if _is_meaningful_char(char)}
-        common_chars = question_chars & content_chars
-        matched_tokens = [token for token in query_tokens if token in content]
-        score = len(common_chars) + len(matched_tokens) * 8
-        relevance = 0.0
-        if query_tokens:
-            relevance = len(matched_tokens) / len(query_tokens)
-        elif question_chars:
-            relevance = len(common_chars) / len(question_chars)
-        if query_tokens:
-            if matched_tokens and score >= 8:
-                scored.append((score, relevance, matched_tokens, doc))
-        elif score >= 8 and relevance >= 0.22:
-            scored.append((score, relevance, matched_tokens, doc))
-    scored.sort(key=lambda item: item[0], reverse=True)
+        metadata = "%s %s" % (doc.get("title", ""), doc.get("id", ""))
+        metadata_normalized = _normalize_search_text(metadata)
+        metadata_identifiers = _identifier_keys(metadata)
+        identifier_match = bool(query_identifiers & metadata_identifiers)
+
+        for chunk_index, chunk in enumerate(_document_chunks(doc.get("content", ""))):
+            chunk_text = chunk["text"]
+            chunk_normalized = _normalize_search_text(chunk_text)
+            chunk_identifiers = _identifier_keys(chunk_text)
+            chunk_identifier_match = bool(query_identifiers & chunk_identifiers)
+            candidate_identifier_match = identifier_match or chunk_identifier_match
+            matched_terms = []
+            content_weight = 0.0
+            metadata_weight = 0.0
+
+            if query_identifiers and not candidate_identifier_match:
+                continue
+
+            for token in query_tokens:
+                token_normalized = _normalize_search_text(token)
+                if not token_normalized:
+                    continue
+                weight = _term_weight(token)
+                if token_normalized in chunk_normalized:
+                    matched_terms.append(token)
+                    content_weight += weight
+                elif token_normalized in metadata_normalized:
+                    matched_terms.append(token)
+                    metadata_weight += weight * 0.35
+
+            if candidate_identifier_match:
+                metadata_weight += 12.0
+                identifier_terms = sorted(
+                    query_identifiers & (metadata_identifiers | chunk_identifiers)
+                )
+                matched_terms.extend(identifier_terms)
+
+            # Metadata can select the right patient file, but a citation still needs
+            # question-specific evidence in the chunk whenever such terms exist.
+            if content_weight <= 0 and not candidate_identifier_match:
+                continue
+
+            score = content_weight + metadata_weight
+            normalized_question = _normalize_search_text(question)
+            if normalized_question and normalized_question in chunk_normalized:
+                score += 18.0
+
+            relevance = min(1.0, content_weight / total_weight)
+            scored.append(
+                {
+                    "score": round(score, 3),
+                    "relevance": round(relevance, 3),
+                    "matched_terms": _deduplicate_terms(matched_terms)[:8],
+                    "document": doc,
+                    "chunk": chunk,
+                    "chunk_index": chunk_index,
+                    "content_weight": content_weight,
+                }
+            )
+
+    scored.sort(
+        key=lambda item: (
+            item["score"],
+            item["content_weight"],
+            -item["chunk_index"],
+        ),
+        reverse=True,
+    )
+    if not scored:
+        return []
+
+    minimum_score = max(8.0, scored[0]["score"] * 0.45)
     snippets = []
-    for score, relevance, matched_tokens, doc in scored[:3]:
-        content = doc.get("content", "")
+    per_document: Dict[str, int] = {}
+    seen_text = set()
+    for item in scored:
+        if item["score"] < minimum_score or len(snippets) >= 4:
+            break
+        doc = item["document"]
+        document_id = doc["id"]
+        if per_document.get(document_id, 0) >= 2:
+            continue
+        snippet_text = _compact_text(item["chunk"]["text"], 520)
+        normalized_snippet = _normalize_search_text(snippet_text)
+        if not normalized_snippet or normalized_snippet in seen_text:
+            continue
+        seen_text.add(normalized_snippet)
+        per_document[document_id] = per_document.get(document_id, 0) + 1
         snippets.append(
             {
-                "document_id": doc["id"],
+                "document_id": document_id,
                 "title": doc["title"],
-                "score": score,
-                "relevance": round(relevance, 3),
-                "matched_terms": matched_tokens[:6],
-                "snippet": _best_snippet(question, content),
+                "section": item["chunk"].get("section") or "相关内容",
+                "score": item["score"],
+                "relevance": item["relevance"],
+                "matched_terms": item["matched_terms"],
+                "snippet": snippet_text,
                 "contains_sentinel": doc.get("contains_sentinel", False),
             }
         )
@@ -1361,8 +1434,21 @@ def _retrieve_snippets(question: str, documents: List[Dict[str, Any]]) -> List[D
 
 
 def _query_tokens(question: str) -> List[str]:
-    text = re.sub(r"\s+", "", question or "")
+    text = unicodedata.normalize("NFKC", re.sub(r"\s+", "", question or ""))
     domain_terms = [
+        "下一次复查",
+        "复查日期",
+        "签到时间",
+        "复查地点",
+        "实验室检查",
+        "低密度脂蛋白胆固醇",
+        "肾小球滤过率",
+        "肌酐",
+        "eGFR",
+        "LDL-C",
+        "日期",
+        "时间",
+        "地点",
         "胸痛",
         "胸闷",
         "心悸",
@@ -1415,15 +1501,20 @@ def _query_tokens(question: str) -> List[str]:
         "分什么",
         "为什么",
     }
-    tokens = [term for term in domain_terms if term in text and term not in generic_terms]
+    tokens = [
+        term
+        for term in domain_terms
+        if _normalize_search_text(term) in _normalize_search_text(text)
+        and term not in generic_terms
+    ]
     for token in _overlap_terms(text):
         if len(token) >= 2 and token not in tokens and token not in generic_terms:
             tokens.append(token)
-    return tokens[:16]
+    return _deduplicate_terms(tokens)[:24]
 
 
 def _overlap_terms(text: str) -> List[str]:
-    tokens = re.findall(r"[A-Za-z0-9_\-]{3,}", text)
+    tokens = re.findall(r"[A-Za-z][A-Za-z0-9_\-]{2,}", text)
     chars = "".join(char for char in text if re.match(r"[\u4e00-\u9fff]", char))
     for size in (4, 3, 2):
         for index in range(0, max(0, len(chars) - size + 1)):
@@ -1434,24 +1525,105 @@ def _overlap_terms(text: str) -> List[str]:
     return tokens
 
 
-def _is_meaningful_char(char: str) -> bool:
-    if not char or char.isspace():
-        return False
-    if char in "，。！？、；：,.!?;:（）()[]{}<>《》“”\"'的了和与或及在是有为对中后前该需需要应该哪些什么如何进行":
-        return False
-    return bool(re.match(r"[A-Za-z0-9_\-\u4e00-\u9fff]", char))
+def _document_chunks(content: str, max_chars: int = 520) -> List[Dict[str, str]]:
+    lines = [line.strip() for line in (content or "").splitlines() if line.strip()]
+    if not lines:
+        return []
+
+    chunks: List[Dict[str, str]] = []
+    current_lines: List[str] = []
+    current_section = ""
+
+    def flush() -> None:
+        nonlocal current_lines
+        text = "\n".join(current_lines).strip()
+        if text:
+            chunks.append({"text": text, "section": current_section})
+        current_lines = []
+
+    for line in lines:
+        is_heading = bool(
+            re.match(
+                r"^(?:[一二三四五六七八九十]+、|第[一二三四五六七八九十0-9]+[章节部分])",
+                line,
+            )
+        )
+        if is_heading:
+            flush()
+            current_section = line
+            current_lines = [line]
+            continue
+
+        projected = len("\n".join(current_lines + [line]))
+        if current_lines and projected > max_chars:
+            overlap = current_lines[-1:]
+            flush()
+            current_lines = ([current_section] if current_section else []) + overlap
+        current_lines.append(line)
+    flush()
+    return chunks
 
 
-def _best_snippet(question: str, content: str) -> str:
-    if not content:
-        return ""
-    best_index = 0
-    for char in question:
-        index = content.find(char)
-        if index >= 0:
-            best_index = max(0, index - 32)
-            break
-    return _compact_text(content[best_index : best_index + 180], 170)
+def _normalize_search_text(text: str) -> str:
+    normalized = unicodedata.normalize("NFKC", text or "").casefold()
+    return re.sub(r"[^a-z0-9\u4e00-\u9fff]+", "", normalized)
+
+
+def _identifier_keys(text: str) -> set:
+    normalized = unicodedata.normalize("NFKC", text or "").casefold()
+    keys = set()
+    pattern = r"[a-z]+(?:[\s_-]*[a-z]+)*[\s_-]*\d{3,}"
+    for match in re.findall(pattern, normalized):
+        compact = re.sub(r"[^a-z0-9]", "", match)
+        alpha_parts = re.findall(r"[a-z]+", match)
+        digits = "".join(re.findall(r"\d+", match))
+        if compact:
+            keys.add(compact)
+        if alpha_parts and digits:
+            keys.add(alpha_parts[0] + digits)
+    return keys
+
+
+def _term_weight(token: str) -> float:
+    normalized = _normalize_search_text(token)
+    high_value_terms = {
+        "下一次复查",
+        "复查日期",
+        "签到时间",
+        "复查地点",
+        "实验室检查",
+        "低密度脂蛋白胆固醇",
+        "肾小球滤过率",
+        "肌酐",
+        "egfr",
+        "ldlc",
+        "日期",
+        "时间",
+        "地点",
+    }
+    if normalized in {_normalize_search_text(term) for term in high_value_terms}:
+        return 12.0
+    if re.search(r"[a-z0-9]", normalized):
+        return 10.0
+    if len(normalized) >= 5:
+        return 8.0
+    if len(normalized) == 4:
+        return 7.0
+    if len(normalized) == 3:
+        return 5.0
+    return 3.0
+
+
+def _deduplicate_terms(terms: List[str]) -> List[str]:
+    result = []
+    seen = set()
+    for term in terms:
+        normalized = _normalize_search_text(term)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        result.append(term)
+    return result
 
 
 def _compose_base_answer(question: str) -> str:

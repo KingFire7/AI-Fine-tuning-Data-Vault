@@ -15,7 +15,7 @@ APP_DIR = Path(__file__).resolve().parent
 STATIC_DIR = APP_DIR / "static"
 
 engine = DemoEngine(APP_DIR)
-app = FastAPI(title="AI 微调数据保险箱 Demo", version="1.0.0")
+app = FastAPI(title="AI 数据保险箱 Demo", version="1.0.0")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 

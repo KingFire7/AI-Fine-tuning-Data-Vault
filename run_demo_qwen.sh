@@ -32,7 +32,7 @@ export HF_ENDPOINT="${AI_VAULT_HF_ENDPOINT:-https://huggingface.co}"
 export AI_VAULT_MAX_NEW_TOKENS="${AI_VAULT_MAX_NEW_TOKENS:-140}"
 export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
 
-echo "AI 微调数据保险箱 Demo · Qwen 真实模型模式"
+echo "AI 数据保险箱 Demo · Qwen 真实模型模式"
 echo "模型: $AI_VAULT_MODEL_ID"
 echo "模型缓存: $AI_VAULT_MODEL_CACHE"
 echo "物理 GPU 白名单: $CUDA_VISIBLE_DEVICES"

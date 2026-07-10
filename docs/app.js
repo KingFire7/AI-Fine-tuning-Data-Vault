@@ -26,7 +26,7 @@ const state = {
 };
 
 const runtimeRestartStorageKey = "aiVaultRuntimeRestart";
-const phases = ["接入与探测", "隔离环境初始化", "安全微调", "加密卸载", "结果回写", "安全退出", "验证报告"];
+const phases = ["接入与探测", "隔离环境初始化", "受控模型适配", "加密卸载", "结果回写", "安全退出", "验证报告"];
 
 const topologyStages = [
   {
@@ -42,10 +42,10 @@ const topologyStages = [
     detail: "私有数据从移动保险箱接入隔离环境，并创建本次运行密钥。"
   },
   {
-    phase: "安全微调",
-    label: "轻量训练",
+    phase: "受控模型适配",
+    label: "后台适配验证",
     nodes: ["engine", "compute"],
-    detail: "训练过程使用宿主机算力，少量微调参数在隔离环境中更新。"
+    detail: "后台适配验证使用宿主机算力，模型适配参数在隔离环境中更新。"
   },
   {
     phase: "加密卸载",
@@ -64,7 +64,7 @@ const topologyStages = [
     phase: "结果回写",
     label: "结果保存回保险箱",
     nodes: ["engine", "adapter"],
-    detail: "微调参数文件保存回移动保险箱，宿主机只保留可验证的缓存状态。"
+    detail: "模型适配参数保存回移动保险箱，宿主机只保留可验证的缓存状态。"
   },
   {
     phase: "安全退出",
@@ -163,7 +163,7 @@ const staticDemo = {
       id: "followup",
       question: "术后随访需要重点确认哪些内容？",
       answer: "根据已上传的术后随访摘要，术后随访应重点确认伤口情况、体温、疼痛评分、复查时间和异常症状。若出现持续发热、伤口渗液、明显出血或胸闷气短，应提示及时线下复诊。",
-      missingAnswer: "当前已选文档中没有找到“术后随访摘要”的相关内容。请先在微调文档区点击上传按钮，选择“术后随访摘要”模拟加入移动保险箱后，再重新提问。",
+      missingAnswer: "当前已选文档中没有找到“术后随访摘要”的相关内容。请先在私有文档区点击上传按钮，选择“术后随访摘要”模拟加入移动保险箱后，再重新提问。",
       sourceTitle: "术后随访摘要",
       snippet: "术后随访需确认伤口情况、体温、疼痛评分、复查时间和异常症状。",
       terms: ["术后", "随访", "伤口", "复查"],
@@ -680,13 +680,13 @@ function mockEventTemplates(mode) {
       detail: "私有文档进入隔离运行环境，页面内完成模拟接入。"
     },
     {
-      phase: "安全微调",
+      phase: "受控模型适配",
       event_type: "training",
       source: "isolated-runtime",
       target: "host-compute",
       action: "start_toy_lora",
       status: "ok",
-      detail: "模拟轻量微调训练并生成收敛指标。"
+      detail: "模拟后台模型适配验证并生成收敛指标。"
     },
     baseline
       ? {
@@ -714,7 +714,7 @@ function mockEventTemplates(mode) {
       target: "移动保险箱",
       action: "persist_adapter",
       status: "ok",
-      detail: "微调参数文件保存回移动保险箱侧。"
+      detail: "模型适配参数保存回移动保险箱侧。"
     },
     {
       phase: "安全退出",
@@ -823,7 +823,7 @@ function buildMockVerification(report) {
       },
       {
         id: "adapter_ownership",
-        name: "微调参数文件归属验证",
+        name: "模型适配参数归属验证",
         status: "pass",
         result: "参数文件位于移动保险箱",
         method: "检查 adapter 输出路径。",
@@ -1094,7 +1094,7 @@ function renderDocuments() {
 
 async function deleteDocument(doc, button) {
   const name = doc.name || doc.id;
-  if (!window.confirm(`确认删除微调文档「${name}」？`)) {
+  if (!window.confirm(`确认删除私有文档「${name}」？`)) {
     return;
   }
   button.disabled = true;
@@ -1122,7 +1122,7 @@ async function saveDocument(filename, content) {
   });
   state.selectedDocuments.add(saved.id);
   await loadDocuments();
-  appendMessage("system", "已保存到移动保险箱", `已保存 ${saved.name}，用于微调训练和本地问答检索。`);
+  appendMessage("system", "已保存到移动保险箱", `已保存 ${saved.name}，用于本地检索与问答。`);
 }
 
 async function saveTypedDocument() {
@@ -2105,11 +2105,11 @@ function renderReport(report) {
     ["耗时", `${report.duration_ms} ms`],
     ["检测状态", verification ? `已检测 · ${verification.verified_at}` : "待手动检测"],
     ["检测耗时", verification ? `${verification.duration_ms} ms` : "未开始"],
-    ["微调文档", `${(report.selected_documents || []).length} 份`],
+    ["私有文档", `${(report.selected_documents || []).length} 份`],
     ["缓存文件", `${(summary.cache_files || report.cache_encryption.cache_files || []).length} 个`],
     ["错误密钥检测", verification ? verification.checks.find((check) => check.id === "wrong_key_rejection")?.result || "--" : "未开始"],
     ["密文熵值", summary.encrypted_entropy_bits_per_byte || report.cache_encryption.encrypted_entropy_bits_per_byte || "无"],
-    ["微调参数文件", report.training.adapter_path || "无"],
+    ["模型适配参数", report.training.adapter_path || "无"],
     ["安全边界", report.safety_boundary]
   ];
   items.forEach(([key, value]) => {
@@ -2161,7 +2161,7 @@ function renderPendingChecks(message) {
     "宿主机明文残留扫描",
     "缓存加密形态验证",
     "错误密钥拒绝验证",
-    "微调参数文件归属验证",
+    "模型适配参数归属验证",
     "审计报告完整性检查"
   ];
   root.innerHTML = "";
@@ -2410,10 +2410,10 @@ function eventCoreText(event) {
     mount_private_dataset: "接入私有数据区",
     create_session_key: "生成本次运行密钥",
     use_plaintext_cache: "启用未加密缓存对照",
-    start_toy_lora: "启动轻量微调训练",
+    start_toy_lora: "启动后台模型适配验证",
     aes_gcm_encrypt_and_offload: "缓存加密后临时存放",
     write_plaintext_cache: "未加密缓存写入宿主机",
-    persist_adapter: "微调参数文件保存回移动保险箱",
+    persist_adapter: "模型适配参数保存回移动保险箱",
     zeroize_session_key: "销毁本次运行密钥",
     inspect_plaintext: "检查宿主机明文残留",
     scan_plaintext: "扫描敏感标记",
@@ -2531,7 +2531,7 @@ function proofCardsForMode(mode, report) {
       label: "产物归属",
       status: adapterPath ? "pass" : "pending",
       value: adapterPath ? `参数文件位于 ${basename(adapterPath)}` : isRunning ? "运行中" : "等待产物",
-      detail: "微调参数文件和审计报告应保存回移动保险箱，而不是留在宿主机临时盘。"
+      detail: "模型适配参数和审计报告应保存回移动保险箱，而不是留在宿主机临时盘。"
     }
   ];
 }

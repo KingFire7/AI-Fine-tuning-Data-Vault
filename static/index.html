@@ -21,7 +21,7 @@
         <section>
           <h3>基本使用流程</h3>
           <ol>
-            <li>在“微调文档”中选择现有文档，或上传/写入新的测试文档。</li>
+            <li>在“私有文档”中选择现有文档，或上传/写入新的测试文档。</li>
             <li>在“大模型使用窗口”中向本地 Qwen 提问，观察文档检索、模型推理和缓存处理流程。</li>
             <li>点击“无保护模式”运行对照流程，观察敏感明文如何落入宿主机临时目录。</li>
             <li>点击“保险箱模式”运行保护流程，观察缓存加密暂存和结果保存回移动保险箱。</li>
@@ -31,7 +31,7 @@
         </section>
         <section>
           <h3>页面模块说明</h3>
-          <p><strong>微调文档：</strong>管理用于微调/检索的合成文档，支持选择、上传、写入和删除。</p>
+          <p><strong>私有文档：</strong>管理用于本地检索与问答的合成文档，支持选择、上传、写入和删除。</p>
           <p><strong>大模型使用窗口：</strong>调用本地 Qwen 模型，结合已选文档回答问题，并展示私有文档引用和本地模型状态。</p>
           <p><strong>三层隔离拓扑与运行时流程展示：</strong>按执行阶段高亮宿主机资源层、隔离运行环境层和物理数据存储层。</p>
           <p><strong>运行资源：</strong>动态展示宿主机 GPU、显存占用、其他进程占用、本程序资源使用情况，并支持调整运行 GPU 和本地模型参数量。</p>
@@ -86,7 +86,7 @@
         <section class="panel document-panel" aria-labelledby="documentTitle">
           <div class="panel-header compact">
             <div>
-              <h2 id="documentTitle">微调文档</h2>
+              <h2 id="documentTitle">私有文档</h2>
               <span id="docCount" class="mini-pill">加载中</span>
             </div>
             <div class="panel-actions">
@@ -107,7 +107,7 @@
           <div class="quick-upload">
             <div class="quick-upload-help">
               <strong>手动写入测试文档</strong>
-              <span>在这里输入文件名和文档内容，点击“保存到移动保险箱”后会保存到移动存储模拟区，并可被微调训练和本地 Qwen 问答检索使用。</span>
+              <span>在这里输入文件名和文档内容，点击“保存到移动保险箱”后会保存到移动存储模拟区，并可供本地 Qwen 检索与问答使用。</span>
             </div>
             <input id="docNameInput" type="text" value="uploaded_case_note.txt" aria-label="文档名" />
             <textarea id="docTextInput" rows="4" aria-label="文档内容">新上传病历摘要
@@ -226,7 +226,7 @@
                     <path d="M12 3v4m0 10v4M3 12h4m10 0h4M5.6 5.6l2.8 2.8m7.2 7.2 2.8 2.8m0-12.8-2.8 2.8m-7.2 7.2-2.8 2.8M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z" />
                   </svg>
                 </span>
-                <span>轻量微调训练</span>
+                <span>受控模型适配</span>
                 <small>更新少量参数，不改写基座模型</small>
               </div>
             </div>
@@ -251,7 +251,7 @@
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Zm0 0v6h6M8 13h8M8 17h5" />
                   </svg>
                 </span>
-                <span>微调参数文件</span>
+                <span>模型适配参数</span>
                 <small id="adapterState">尚未生成</small>
               </div>
             </div>
@@ -344,6 +344,6 @@
       </button>
     </div>
 
-    <script src="/static/app.js?v=20260708-copy1"></script>
+    <script src="/static/app.js?v=20260711-private-docs1"></script>
   </body>
 </html>

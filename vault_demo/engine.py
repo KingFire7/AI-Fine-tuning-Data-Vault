@@ -695,7 +695,7 @@ class DemoEngine:
             "sandbox",
             "mount_private_dataset",
             "ok",
-            "读取训练样本 %d 条，挂载微调文档 %d 份，sentinel 仅允许出现在 vault 或加密载荷内"
+            "读取训练样本 %d 条，挂载私有文档 %d 份，sentinel 仅允许出现在 vault 或加密载荷内"
             % (len(dataset), len(selected_documents)),
         )
         time.sleep(0.25)
@@ -852,7 +852,7 @@ class DemoEngine:
         except Exception as exc:
             self._event(
                 run_id,
-                "安全微调",
+                "受控模型适配",
                 "torch_missing",
                 "python",
                 "demo-engine",
@@ -890,7 +890,7 @@ class DemoEngine:
 
         self._event(
             run_id,
-            "安全微调",
+            "受控模型适配",
             "train_start",
             "sandbox",
             "gpu" if device.type == "cuda" else "cpu",
@@ -1077,7 +1077,7 @@ class DemoEngine:
             samples.append(
                 {
                     "id": "doc-%s" % document["id"],
-                    "question": "根据微调文档 %s 生成专科问答样本。" % document["title"],
+                    "question": "根据私有文档 %s 生成专科问答样本。" % document["title"],
                     "answer": document["content"],
                     "label": index % 4,
                 }
@@ -1637,12 +1637,12 @@ def _compose_vault_answer(
     question: str, snippets: List[Dict[str, Any]], adapter_path: Optional[str], mode: str
 ) -> str:
     if not snippets:
-        return "保险箱增强模型回答：未在已选文档中检索到可用依据，请先选择或上传微调文档。"
+        return "保险箱增强模型回答：未在已选文档中检索到可用依据，请先选择或上传私有文档。"
     top = snippets[0]
-    adapter_state = "已加载最新 adapter" if adapter_path else "尚未运行微调，使用文档检索上下文"
+    adapter_state = "已加载最新 adapter" if adapter_path else "尚未生成模型适配参数，使用文档检索上下文"
     answer = [
         "保险箱增强模型回答：",
-        "1. 已根据已选微调文档定位到《%s》。" % top["title"],
+        "1. 已根据已选私有文档定位到《%s》。" % top["title"],
         "2. 结合文档内容，当前问题可优先按该专科流程处理：%s" % top["snippet"],
         "3. 运行状态：%s；上下文缓存%s落入宿主机临时盘。"
         % (adapter_state, "以 AES-GCM 密文形式" if mode == "vault" else "以明文形式"),
@@ -1666,7 +1666,7 @@ def _build_training_flow(
             "source": "Browser / Operator",
             "target": "vault_drive/fine_tune_docs",
             "status": "ok",
-            "detail": "已选 %d 份微调文档，敏感原文只作为 vault 内部训练语料读取" % len(documents),
+            "detail": "已选 %d 份私有文档，敏感原文只在移动保险箱内部读取" % len(documents),
         },
         {
             "stage": "2",
@@ -1746,7 +1746,7 @@ def _build_inference_flow(
         },
         {
             "stage": "Q2",
-            "name": "读取微调文档",
+            "name": "读取私有文档",
             "source": "vault_drive/fine_tune_docs",
             "target": "retriever",
             "status": "ok",
